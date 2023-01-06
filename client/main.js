@@ -14,6 +14,20 @@ let cameraX = 0;
 let cameraY = 0;
 const playerId = Date.now();
 
+// Messages
+socket.onmessage = function (event) {
+    const data = JSON.parse(event.data);
+    if (data.type === 'playerData') {
+        // Update the player data with the new data
+        drawPlayers(data.allPlayerData);
+    }
+    if (data.type === 'foodData') {
+        // Update the food data with the new data
+        drawFood(data.foodList);
+    }
+}
+
+// Map
 function drawMap() {
     // Draw the map
     ctx.beginPath();
@@ -22,13 +36,32 @@ function drawMap() {
     ctx.fill();
 }
 
-// Draw the players from the server
-socket.onmessage = function (event) {
-    const data = JSON.parse(event.data);
-    if (data.type === 'playerData') {
-        // Update the player data with the new data
-        drawPlayers(data.allPlayerData);
+// Food
+class Food {
+    constructor(x, y, id, color) {
+        this.width = 25;
+        this.height = 25;
+        this.color = color;
+        this.mass = 1;
+        this.x = x;
+        this.y = y;
+        this.id = id
     }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.width / 2, 0, 2 * Math.PI);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+    }
+}
+
+let foodList = []
+function drawFood(data) {
+    foodList = []
+    data.forEach(food => {
+        foodList.push(new Food(food.x, food.y, food.id, food.color));
+    });
 }
 
 // Player class
@@ -127,15 +160,16 @@ class Player {
 
 let playerList = []
 function drawPlayers(data) {
+    playerList = []
+    data = data.filter(player => player.id !== playerId)
     data.forEach(player => {
-        if (player.id !== playerId) {
-            playerList.push(new Player(player.x, player.y, player.color, player.mass, player.id));
-        }
+        playerList.push(new Player(player.x, player.y, player.mass, 'green', player.id));
     });
 }
 
 // MAIN RENDER
 function render() {
+
     // Clear the camera
     ctx.clearRect(0, 0, camera.width, camera.height);
 
@@ -149,16 +183,52 @@ function render() {
     drawMap();
 
     // Move camera to player
-    cameraX = myCharacter.x - camera.width / 2;
-    cameraY = myCharacter.y - camera.height / 2;
+    if (!paused) {
+        cameraX = myCharacter.x - camera.width / 2;
+        cameraY = myCharacter.y - camera.height / 2;
+    }
 
-    // Draw the character
-    myCharacter.draw();
+
+    // Colliding logic
+    function isColliding(char, food) {
+        // Calculate the distance between the centers of the character and the food
+        let distanceX = char.x - food.x;
+        let distanceY = char.y - food.y;
+        let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+        // Check if the distance is less than the radius of the character
+        if (distance < char.width / 2) {
+            return true;
+        }
+        return false;
+    }
+
+    // Draw the food
+    foodList.forEach(food => {
+        food.draw();
+        if (isColliding(myCharacter, food)) {
+            myCharacter.mass += food.mass;
+            myCharacter.width += food.mass / 2;
+            myCharacter.height += food.mass / 2;
+            if (myCharacter.speed > 0.21) {
+                myCharacter.speed = myCharacter.originalSpeed - myCharacter.mass / 1000;
+            }
+            socket.send(JSON.stringify({
+                type: 'foodData',
+                data: {
+                    id: food.id
+                }
+            }));
+        }
+    });
 
     // Draw the players
     playerList.forEach(player => {
         player.draw();
     });
+
+    // Draw the character
+    myCharacter.draw();
 
     // Restore the camera state
     ctx.restore();
@@ -174,4 +244,35 @@ camera.addEventListener('mousemove', (event) => {
     mouseY = event.clientY - rect.top;
 });
 
-const myCharacter = new Character(100, 'red', 3);
+let paused = false;
+document.onkeydown = (event) => {
+    if (event.code === "Space") {
+        myCharacter.mass += 50;
+        myCharacter.width += 50 / 2;
+        myCharacter.height += 50 / 2;
+        if (myCharacter.speed > 0.21) {
+            myCharacter.speed = myCharacter.originalSpeed - myCharacter.mass / 1000;
+        }
+    }
+
+    if (event.code === "Escape") {
+
+        if (!paused) {
+            myCharacter.speed = 0;
+            myCharacter.mass = 0;
+            myCharacter.width = 0;
+            myCharacter.height = 0;
+            myCharacter.x = -10000;
+            myCharacter.y = -10000;
+            paused = true;
+            document.getElementById('menu').style.display = 'flex';
+        } else if (paused) {
+            document.getElementById('menu').style.display = 'none';
+            myCharacter = new Character(100, 'red', 3);
+            paused = false;
+        }
+    }
+
+}
+
+let myCharacter = new Character(100, 'red', 3);

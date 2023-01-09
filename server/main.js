@@ -1,10 +1,14 @@
+const fs = require('fs');
+const https = require('https');
 const WebSocket = require('ws');
 
-const PORT = 8080;
-
-const wss = new WebSocket.Server({
-    port: PORT
+const server = https.createServer({
+    cert: fs.readFileSync('path/to/your/certificate.crt'),
+    key: fs.readFileSync('path/to/your/private-key.key')
 });
+
+const wss = new WebSocket.Server({ server });
+server.listen(25594);
 
 // Keep track of all connected clients
 const clients = new Set();

@@ -1,4 +1,9 @@
-const socket = new WebSocket('ws://localhost:8080');
+let socket;
+function connectToSocket() {
+    socket = new WebSocket('ws://node.binders.net:25594');
+}
+connectToSocket()
+
 let socketIsOpen = false;
 socket.addEventListener('open', function (event) {
     socketIsOpen = true;
@@ -170,68 +175,80 @@ function drawPlayers(data) {
 // MAIN RENDER
 function render() {
 
-    // Clear the camera
-    ctx.clearRect(0, 0, camera.width, camera.height);
+    // If socket is open
+    if (socket.readyState === 1) {
+        // Clear the camera
+        ctx.clearRect(0, 0, camera.width, camera.height);
 
-    // Save the camera state
-    ctx.save();
+        // Save the camera state
+        ctx.save();
 
-    // Translate the camera to move the camera
-    ctx.translate(-cameraX, -cameraY);
+        // Translate the camera to move the camera
+        ctx.translate(-cameraX, -cameraY);
 
-    // Draw game objects
-    drawMap();
+        // Draw game objects
+        drawMap();
 
-    // Move camera to player
-    if (!paused) {
-        cameraX = myCharacter.x - camera.width / 2;
-        cameraY = myCharacter.y - camera.height / 2;
-    }
-
-
-    // Colliding logic
-    function isColliding(char, food) {
-        // Calculate the distance between the centers of the character and the food
-        let distanceX = char.x - food.x;
-        let distanceY = char.y - food.y;
-        let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-        // Check if the distance is less than the radius of the character
-        if (distance < char.width / 2) {
-            return true;
+        // Move camera to player
+        if (!paused) {
+            cameraX = myCharacter.x - camera.width / 2;
+            cameraY = myCharacter.y - camera.height / 2;
         }
-        return false;
-    }
 
-    // Draw the food
-    foodList.forEach(food => {
-        food.draw();
-        if (isColliding(myCharacter, food)) {
-            myCharacter.mass += food.mass;
-            myCharacter.width += food.mass / 2;
-            myCharacter.height += food.mass / 2;
-            if (myCharacter.speed > 0.21) {
-                myCharacter.speed = myCharacter.originalSpeed - myCharacter.mass / 1000;
+
+        // Colliding logic
+        function isColliding(char, food) {
+            // Calculate the distance between the centers of the character and the food
+            let distanceX = char.x - food.x;
+            let distanceY = char.y - food.y;
+            let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+            // Check if the distance is less than the radius of the character
+            if (distance < char.width / 2) {
+                return true;
             }
-            socket.send(JSON.stringify({
-                type: 'foodData',
-                data: {
-                    id: food.id
-                }
-            }));
+            return false;
         }
-    });
 
-    // Draw the players
-    playerList.forEach(player => {
-        player.draw();
-    });
+        // Draw the food
+        foodList.forEach(food => {
+            food.draw();
+            if (isColliding(myCharacter, food)) {
+                myCharacter.mass += food.mass;
+                myCharacter.width += food.mass / 2;
+                myCharacter.height += food.mass / 2;
+                if (myCharacter.speed > 0.21) {
+                    myCharacter.speed = myCharacter.originalSpeed - myCharacter.mass / 1000;
+                }
+                socket.send(JSON.stringify({
+                    type: 'foodData',
+                    data: {
+                        id: food.id
+                    }
+                }));
+            }
+        });
 
-    // Draw the character
-    myCharacter.draw();
+        // Draw the players
+        playerList.forEach(player => {
+            player.draw();
+        });
 
-    // Restore the camera state
-    ctx.restore();
+        // Draw the character
+        myCharacter.draw();
+
+        // Restore the camera state
+        ctx.restore();
+    }
+
+    // If socket is closed
+    if (socket.readyState === 3) {
+        document.getElementById('connection').style.display = 'flex';
+        // Try to reconnect
+        connectToSocket()
+    }
+
+
 }
 
 setInterval(render, 1000 / 60); // Call render function 60 times per second

@@ -9,6 +9,10 @@ const server = https.createServer({
 
 const wss = new WebSocket.Server({ server });
 
+// FOR DEV LOCALHOST PURPOSES
+// const WebSocket = require('ws');
+// const wss = new WebSocket.Server({ port: 8080 });
+
 // Keep track of all connected clients
 const clients = new Set();
 
@@ -29,7 +33,7 @@ for (let i = 0; i < foodCount; i++) {
 wss.on('connection', function connection(ws) {
     // Add the new client to the set of clients
     clients.add(ws);
-    console.log("\nNew client connected. Total clients: " + clients.size)
+    console.log("New client connected. Total clients: " + clients.size)
 
     // Send the food data to client
     ws.send(JSON.stringify({
@@ -71,16 +75,36 @@ wss.on('connection', function connection(ws) {
         // Food data
         if (data.type === 'foodData') {
             foodList = foodList.filter(food => food.id !== data.data.id)
-            foodList.push({
-                id: data.data.id,
-                x: Math.random() * 5000,
-                y: Math.random() * 5000
-            });
-            // Send the new food data to client
-            ws.send(JSON.stringify({
-                type: 'foodData',
-                foodList
-            }));
+            function spawnFood() {
+                let foodX = Math.random() * 5000;
+                let foodY = Math.random() * 5000;
+                let foodRadius = 13;
+                //iterate through all players
+                allPlayerData.forEach(player => {
+                    //check distance between the new food and the player
+                    let distance = Math.sqrt(Math.pow(player.x - foodX, 2) + Math.pow(player.y - foodY, 2));
+                    //if the distance is smaller than player's width + foodRadius
+                    if (distance <= player.width + foodRadius) {
+                        //call the function again
+                        return spawnFood();
+                    }
+                })
+                // if the new food is not within any player boundary
+                foodList.push({
+                    id: data.data.id,
+                    x: foodX,
+                    y: foodY
+                });
+                // Send the new food data to client
+                clients.forEach(client => {
+                    client.send(JSON.stringify({
+                        type: 'foodData',
+                        foodList
+                    }));
+                })
+
+            }
+            spawnFood();
         }
     });
 

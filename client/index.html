@@ -11,10 +11,30 @@
 </head>
 
 <body>
-    <div id="dev" class="dev">TEST</div>
-    <div id="menu" class="menu">PRESS ESC TO RESPAWN</div>
-    <div id="connection" class="connection">Network problem, please wait...</span></div>
-    <canvas id="camera"></canvas>
+
+    <div class="loading" id="loading">
+        <div class="lds-dual-ring"></div>
+    </div>
+
+    <div class="menu" id="menu">
+        <ul>
+            <li>
+                <h1>Agerio</h1>
+            </li>
+            <li>
+                <div class="playBtn" id="play">Play</div>
+            </li>
+            <li>
+                <input class="usernameInput" type="text" id="usernameInput" placeholder="Username" maxlength="12">
+            </li>
+        </ul>
+    </div>
+
+    <div class="game" id="game">
+        <div id="dev" class="dev"></div>
+        <canvas id="camera"></canvas>
+    </div>
+
 </body>
 
 </html>

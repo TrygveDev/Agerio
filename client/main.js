@@ -42,11 +42,12 @@ function drawMap() {
 }
 
 // Food
+let colors = ['blue', 'red', 'chartreuse', 'yellow', 'orange', 'magenta'];
 class Food {
-    constructor(x, y, id, color) {
+    constructor(x, y, id) {
         this.width = 25;
         this.height = 25;
-        this.color = color;
+        this.color = colors[Math.floor(Math.random() * colors.length)];
         this.mass = 1;
         this.x = x;
         this.y = y;
@@ -65,7 +66,7 @@ let foodList = []
 function drawFood(data) {
     foodList = []
     data.forEach(food => {
-        foodList.push(new Food(food.x, food.y, food.id, food.color));
+        foodList.push(new Food(food.x, food.y, food.id));
     });
 }
 

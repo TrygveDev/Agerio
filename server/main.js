@@ -17,12 +17,10 @@ let allPlayerData = [];
 
 // Food logic
 let foodList = [];
-let colors = ['blue', 'red', 'chartreuse', 'yellow', 'orange', 'magenta'];
 const foodCount = 1000;
 for (let i = 0; i < foodCount; i++) {
     foodList.push({
         id: i,
-        color: colors[Math.floor(Math.random() * colors.length)],
         x: Math.random() * 5000,
         y: Math.random() * 5000
     });
@@ -75,7 +73,6 @@ wss.on('connection', function connection(ws) {
             foodList = foodList.filter(food => food.id !== data.data.id)
             foodList.push({
                 id: data.data.id,
-                color: colors[Math.floor(Math.random() * colors.length)],
                 x: Math.random() * 5000,
                 y: Math.random() * 5000
             });

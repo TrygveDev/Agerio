@@ -1,6 +1,6 @@
 let socket;
 function connectToSocket() {
-    socket = new WebSocket('ws://node.binders.net:25594');
+    socket = new WebSocket('wss://gi.binders.net:25594');
 }
 connectToSocket()
 
@@ -99,7 +99,7 @@ class Character {
         this.x += vx * this.speed;
         this.y += vy * this.speed;
 
-        document.getElementById('dev').textContent = `X: ${this.x.toFixed(1)} Y: ${this.y.toFixed(1)} Speed: ${this.speed.toFixed(3)} Mass: ${this.mass}`;
+        document.getElementById('dev').textContent = `v4.0 X: ${this.x.toFixed(1)} Y: ${this.y.toFixed(1)} Speed: ${this.speed.toFixed(3)} Mass: ${this.mass}`;
 
         // Out of bounds controlling
         if (this.x > 5000) {
@@ -263,14 +263,6 @@ camera.addEventListener('mousemove', (event) => {
 
 let paused = false;
 document.onkeydown = (event) => {
-    if (event.code === "Space") {
-        myCharacter.mass += 50;
-        myCharacter.width += 50 / 2;
-        myCharacter.height += 50 / 2;
-        if (myCharacter.speed > 0.21) {
-            myCharacter.speed = myCharacter.originalSpeed - myCharacter.mass / 1000;
-        }
-    }
 
     if (event.code === "Escape") {
 

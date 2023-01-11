@@ -2,9 +2,8 @@ document.getElementById('play').onclick = () => {
 
     document.getElementById('menu').style.display = 'none';
     document.getElementById('loading').style.display = 'flex';
-    const username = document.getElementById('usernameInput').value != '' ? document.getElementById('usernameInput').value : 'UnnamedBlob';
-
-    console.log(username);
+    const username = document.getElementById('usernameInput').value != '' && document.getElementById('usernameInput').value.length < 13 ? document.getElementById('usernameInput').value : 'UnnamedBlob';
+    console.log("Hey, " + username + "!");
     let socket;
     socket = new WebSocket('wss://gi.binders.net:25594');
     // FOR DEV LOCALHOST PURPOSES
@@ -32,10 +31,19 @@ document.getElementById('play').onclick = () => {
         if (data.type === 'playerData') {
             // Update the player data with the new data
             drawPlayers(data.allPlayerData);
+            drawLeaderboard(data.allPlayerData);
         }
         if (data.type === 'foodData') {
             // Update the food data with the new data
             drawFood(data.foodList);
+        }
+        if (data.type === 'playerDeath') {
+            // Respawn the player
+            spawnCharacter(100, 3)
+            window.location.reload();
+        }
+        if (data.type === 'unautorized') {
+            window.close();
         }
     }
 
@@ -92,8 +100,8 @@ document.getElementById('play').onclick = () => {
             this.speed = speed;
             this.originalSpeed = speed;
             this.mass = mass;
-            this.x = Math.random() * 500;
-            this.y = Math.random() * 500;
+            this.x = Math.random() * 5000;
+            this.y = Math.random() * 5000;
         }
 
         updatePosition() {
@@ -112,7 +120,7 @@ document.getElementById('play').onclick = () => {
             this.x += vx * this.speed;
             this.y += vy * this.speed;
 
-            document.getElementById('dev').textContent = `v5.0 X: ${this.x.toFixed(1)} Y: ${this.y.toFixed(1)} Speed: ${this.speed.toFixed(3)} Mass: ${this.mass}`;
+            document.getElementById('dev').textContent = `v5.7 X: ${this.x.toFixed(1)} Y: ${this.y.toFixed(1)} Speed: ${this.speed.toFixed(3)} Mass: ${this.mass}`;
 
             // Out of bounds controlling
             if (this.x > 5000) {
@@ -128,6 +136,8 @@ document.getElementById('play').onclick = () => {
                 this.y = 0;
             }
 
+
+
             // Send player data to the backend
             if (socket.readyState === 1) {
                 const data = {
@@ -138,7 +148,7 @@ document.getElementById('play').onclick = () => {
                         y: myCharacter.y,
                         color: myCharacter.color,
                         mass: myCharacter.mass,
-                        username: username,
+                        username: username
                     }
                 }
                 socket.send(JSON.stringify(data));
@@ -151,6 +161,12 @@ document.getElementById('play').onclick = () => {
             ctx.arc(this.x, this.y, this.width / 2, 0, 2 * Math.PI);
             ctx.fillStyle = this.color;
             ctx.fill();
+        }
+
+        updateMass(increment) {
+            this.mass += Math.floor((increment / 4));
+            this.width = this.mass / 2;
+            this.height = this.mass / 2;
         }
 
     }
@@ -192,6 +208,52 @@ document.getElementById('play').onclick = () => {
         });
     }
 
+    // Colliding logic
+    function isCollidingFood(char, food) {
+        // Calculate the distance between the centers of the character and the food
+        let distanceX = char.x - food.x;
+        let distanceY = char.y - food.y;
+        let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+        // Check if the distance is less than the radius of the character
+        if (distance < char.width / 2) {
+            return true;
+        }
+        return false;
+    }
+    function isCollidingPlayer(char, player) {
+        // Calculate the distance between the centers of the character and the food
+        let distanceX = char.x - player.x;
+        let distanceY = char.y - player.y;
+        let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+
+        // Check if the distance is less than the radius of the character
+        if (distance < char.width / 2) {
+            return true;
+        }
+        return false;
+    }
+
+    // Leaderboard
+    function drawLeaderboard(players) {
+        // Sort players by mass
+        players.sort((a, b) => b.mass - a.mass);
+
+        // Only display the top X players on the leaderboard
+        let numPlayersToDisplay = 10;
+        let leaderboardPlayers = players.slice(0, numPlayersToDisplay);
+
+        document.getElementById('leaderboardList').innerHTML = '';
+        // Loop through the top players and draw their name and mass on the canvas
+        for (let i = 0; i < leaderboardPlayers.length; i++) {
+            let player = leaderboardPlayers[i];
+            let text = (i + 1) + '. ' + player.username + ' - ' + player.mass;
+            let li = document.createElement('li')
+            li.textContent = text;
+            document.getElementById('leaderboardList').appendChild(li);
+        }
+    }
+
     // MAIN RENDER
     function render() {
 
@@ -213,24 +275,10 @@ document.getElementById('play').onclick = () => {
             cameraX = myCharacter.x - camera.width / 2;
             cameraY = myCharacter.y - camera.height / 2;
 
-            // Colliding logic
-            function isColliding(char, food) {
-                // Calculate the distance between the centers of the character and the food
-                let distanceX = char.x - food.x;
-                let distanceY = char.y - food.y;
-                let distance = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
-
-                // Check if the distance is less than the radius of the character
-                if (distance < char.width / 2) {
-                    return true;
-                }
-                return false;
-            }
-
             // Draw the food
             foodList.forEach(food => {
                 food.draw();
-                if (isColliding(myCharacter, food)) {
+                if (isCollidingFood(myCharacter, food)) {
                     myCharacter.mass += food.mass;
                     myCharacter.width += food.mass / 2;
                     myCharacter.height += food.mass / 2;
@@ -243,16 +291,33 @@ document.getElementById('play').onclick = () => {
                             id: food.id
                         }
                     }));
+                    foodList.splice(foodList.indexOf(food), 1);
                 }
             });
 
             // Draw the players
             playerList.forEach(player => {
                 player.draw();
+                if (isCollidingPlayer(myCharacter, player)) {
+                    if (myCharacter.mass > player.mass) {
+                        myCharacter.updateMass(player.mass)
+                        socket.send(JSON.stringify({
+                            type: 'playerDeath',
+                            data: {
+                                id: player.id,
+                                username: player.username
+                            }
+                        }));
+                        playerList.splice(playerList.indexOf(player), 1);
+                    }
+                }
             });
 
             // Draw the character
             myCharacter.draw();
+
+            // Draw leaderboard
+
 
             // Restore the camera state
             ctx.restore();
@@ -277,5 +342,10 @@ document.getElementById('play').onclick = () => {
         mouseY = event.clientY - rect.top;
     });
 
-    let myCharacter = new Character(100, 3);
+
+    let myCharacter;
+    function spawnCharacter(mass, speed) {
+        myCharacter = new Character(mass, speed);
+    }
+    spawnCharacter(100, 3)
 }

@@ -30,7 +30,15 @@ for (let i = 0; i < foodCount; i++) {
     });
 }
 
-wss.on('connection', function connection(ws) {
+wss.on('connection', function connection(ws, req) {
+    const origin = req.headers.origin;
+    if (origin.toString() != "https://agerio.trygve.dev") {
+        ws.close();
+        ws.send(JSON.stringify({
+            type: 'unautorized',
+        }))
+    }
+
     // Add the new client to the set of clients
     clients.add(ws);
     console.log("New client connected. Total clients: " + clients.size)
@@ -106,6 +114,20 @@ wss.on('connection', function connection(ws) {
             }
             spawnFood();
         }
+
+        // Player killed event
+        if (data.type === 'playerDeath') {
+            // Send the player death event to all clients
+            console.log(data.data.username + " died!")
+            clients.forEach(client => {
+                if (client.playerId === data.data.id) {
+                    client.send(JSON.stringify({
+                        type: 'playerDeath',
+                        data: null
+                    }));
+                }
+            })
+        }
     });
 
     // Remove the client from the set of clients when the connection is closed
@@ -120,3 +142,4 @@ wss.on('connection', function connection(ws) {
 
 server.listen(25594);
 console.log("Server running at port 25594!")
+console.log("done")

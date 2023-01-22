@@ -1,6 +1,6 @@
-import './Menu.css';
-
 import { useRef } from 'react';
+
+import style from './menu.module.css';
 
 function Menu(props) {
 
@@ -14,10 +14,10 @@ function Menu(props) {
     }
 
     return (
-        <div className='container'>
-            <h1>Agerio</h1>
-            <button onClick={startGame}>PLAY</button>
-            <input ref={usernameInput} type="text" placeholder="Username" maxLength="12"></input>
+        <div className={style.container}>
+            <h1 className={style.title}>Ager<span>IO</span></h1>
+            <button className={style.playBtn} onClick={startGame}>PLAY</button>
+            <input className={style.usernameInput} ref={usernameInput} type="text" placeholder="Username" maxLength="12"></input>
         </div>
     );
 }

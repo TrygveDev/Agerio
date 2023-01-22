@@ -2,16 +2,15 @@ const https = require('https');
 const fs = require('fs');
 const WebSocket = require('ws');
 
-const server = https.createServer({
-    cert: fs.readFileSync('cert.pem'),
-    key: fs.readFileSync('key.pem')
-});
+// const server = https.createServer({
+//     cert: fs.readFileSync('cert.pem'),
+//     key: fs.readFileSync('key.pem')
+// });
 
-const wss = new WebSocket.Server({ server });
+// const wss = new WebSocket.Server({ server });
 
 // FOR DEV LOCALHOST PURPOSES
-// const WebSocket = require('ws');
-// const wss = new WebSocket.Server({ port: 8080 });
+const wss = new WebSocket.Server({ port: 8080 });
 
 // Keep track of all connected clients
 const clients = new Set();
@@ -32,12 +31,12 @@ for (let i = 0; i < foodCount; i++) {
 
 wss.on('connection', function connection(ws, req) {
     const origin = req.headers.origin;
-    if (origin.toString() != "https://agerio.trygve.dev") {
-        ws.close();
-        ws.send(JSON.stringify({
-            type: 'unautorized',
-        }))
-    }
+    // if (origin.toString() != "https://agerio.trygve.dev") {
+    //     ws.close();
+    //     ws.send(JSON.stringify({
+    //         type: 'unautorized',
+    //     }))
+    // }
 
     // Add the new client to the set of clients
     clients.add(ws);
@@ -134,12 +133,11 @@ wss.on('connection', function connection(ws, req) {
     ws.on('close', function close() {
         allPlayerData = allPlayerData.filter(player => player.id !== ws.playerId)
         clients.delete(ws)
-        console.log("\nClient disconnected. Total clients: " + clients.size)
+        console.log("Client disconnected. Total clients: " + clients.size)
     });
 
 
 });
 
-server.listen(25594);
-console.log("Server running at port 25594!")
-console.log("done")
+// server.listen(25594);
+console.log("Server running!")
